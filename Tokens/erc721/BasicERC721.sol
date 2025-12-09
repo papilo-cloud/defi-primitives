@@ -17,16 +17,22 @@ contract BasicERC721 is IERC721, IERC721Metadata {
     mapping(uint256 => address) private _tokenApprovals;
 
     // Owner => Operator => Approved
-    mapping(uint256 => mapping(address => bool)) private _operatorApprovals;
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
+
+    constructor(string memory _name, string memory _symbol) {
+        name = _name;
+        symbol = _symbol;
+    }
 
     function balanceOf(address owner) external view returns (uint256) {
+        require(owner != address(0), "Zero address");
         return _balances[owner];
     }
 
-    function ownerOf(uint256 tokenId) public view returns (uint256) {
+    function ownerOf(uint256 tokenId) public view returns (address) {
         address owner = _owners[tokenId];
         require(owner != address(0), "Token doesn't exist");
-        return _owners[tokenId];
+        return owner;
     }
 
     function approve(address to, uint256 tokenId) external {
