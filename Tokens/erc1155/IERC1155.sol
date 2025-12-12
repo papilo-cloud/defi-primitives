@@ -63,7 +63,7 @@ interface IERC1155 {
     );
     event URI(
         string value,
-        uint256 indexed id,
+        uint256 indexed id
     );
 }
 

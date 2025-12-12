@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC1155, IERC1155MetadataURI} from "./IERC1155.sol";
+import {IERC1155, IERC1155MetadataURI, IERC1155Receiver} from "./IERC1155.sol";
 
-contract ERC1155 is IERC1155, IERC1155MetadataURI {
+contract ERC1155 is IERC1155, IERC1155MetadataURI, IERC1155Receiver {
     // Token ID => Account => Balance
     mapping(uint256 => mapping(address => uint256)) private _balances;
 
@@ -18,7 +18,7 @@ contract ERC1155 is IERC1155, IERC1155MetadataURI {
         return _balances[id][account];
     }
 
-    function balanceOfBatch(address[] memory accounts, address[] memory ids) public view returns (uint256[] memory) {
+    function balanceOfBatch(address[] memory accounts, uint256[] memory ids) public view returns (uint256[] memory) {
         require(accounts.length == ids.length, "Length mismatch");
         uint256[] memory batchBalances = new uint256[](ids.length);
 
@@ -71,7 +71,7 @@ contract ERC1155 is IERC1155, IERC1155MetadataURI {
     ) public {
         require(from == msg.sender || isApprovedForAll(from, msg.sender), "Not authorized");
         require(to != address(0), "Transfer to zero address");
-        require(accounts.length == ids.length, "Length mismatch");
+        require(amounts.length == ids.length, "Length mismatch");
 
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
@@ -167,7 +167,7 @@ contract ERC1155 is IERC1155, IERC1155MetadataURI {
         }
     }
 
-        function _doSafeTransferAcceptanceCheck(
+    function _doSafeBatchTransferAcceptanceCheck(
         address operator,
         address from,
         address to,
