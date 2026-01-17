@@ -188,3 +188,44 @@ contract ImplementationV1 {
         return value;
     }
 }
+
+
+
+// Implementation V2 (Upgrade)
+/**
+ * Implementation V2
+ * Adds new functionality
+ */
+
+contract ImplementationV2 {
+    // CRITICAL: Same storage layout av V1
+    uint256 public value;
+    address public owner;
+    bool public initialized;
+
+    // NEW: Can add variables at the end
+    uint256 public multiplier;
+    bool private initializedV2;
+
+    // V2 initializer (called during upgrade)
+    function initializeV2(address _multiplier) public {
+        require(initializedV2, "V2 already initialized");
+        initializedV2 = true;
+        multiplier = _multiplier;
+    } 
+
+    // Existing function can be modified
+    function setValue(uint256 _value) public {
+        require(msg.sender == owner, "Not owner");
+        value = _value * multiplier;
+    }
+
+    function getValue() public view returns (uint256) {
+        return value
+    }
+
+    function setMultiplier(uint256 _multiplier) public {
+        require(msg.sender == owner, "Not owner");
+        multiplier = _multiplier;
+    }
+}
