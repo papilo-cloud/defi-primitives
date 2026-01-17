@@ -162,3 +162,29 @@ contract TransparentUpgradeableProxy {
     event Upgrade(address indexed implementation);
     event AdminChanged(address prevAdmin, address currAdmin);
 }
+
+
+
+// Implementation Contract (V1)
+/**
+ * Implementation V1
+ * Works with Transparent Proxy
+ */
+contract ImplementationV1 {
+    uint256 public value;
+    address public owner;
+
+    // NO constructor! Use initializer instead
+    bool private initialized
+
+    function initialize(address _owner) public {
+        require(!initialized, "Already initialized");
+        initialized = true;
+        owner = _owner;
+        value = 0;
+    }
+
+    function getValue() public view returns (uint256) {
+        return value;
+    }
+}
