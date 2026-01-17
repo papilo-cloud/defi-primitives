@@ -60,7 +60,7 @@ contract TransparentUpgradeableProxy {
             _upgradeTo(newImpl);
         } else if (selector == this.upgradeToAndCall.selector) {
             (address newImpl, bytes memory data) = abi.decode(msg.data[4:], (address, bytes));
-            _upgradeTo(newImpl)
+            _upgradeTo(newImpl);
             (bool success, ) = newImpl.delegatecall(data);
             require(success, "Call failed");
         } else if (selector == this.changeAdmin.selector) {
@@ -175,7 +175,7 @@ contract ImplementationV1 {
     address public owner;
 
     // NO constructor! Use initializer instead
-    bool private initialized
+    bool private initialized;
 
     function initialize(address _owner) public {
         require(!initialized, "Already initialized");
@@ -221,7 +221,7 @@ contract ImplementationV2 {
     }
 
     function getValue() public view returns (uint256) {
-        return value
+        return value;
     }
 
     function setMultiplier(uint256 _multiplier) public {
