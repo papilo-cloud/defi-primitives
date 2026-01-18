@@ -15,7 +15,7 @@ contract TransparentUpgradeableProxy {
         uint256(keccak256("eip1967.proxy.implementation")) - 1
     );
 
-    constructor(address _logic, address _admin, bytes32 memory _data) {
+    constructor(address _logic, address _admin, bytes memory _data) {
         _setImplementation(_logic);
         _setAdmin(_admin);
 
@@ -153,11 +153,34 @@ contract TransparentUpgradeableProxy {
     }
 
     // Public interface (only callable by admin)
-    function upgradeTo(address newImplementation) external;
-    function upgradeToAndCall(address newImplementation, bytes calldata data) external;
-    function changeAdmin(address newAdmin) external;
-    function admin() external view returns (address);
-    function implementation() external view returns (address);
+    function upgradeTo(address newImplementation) external {
+        require(msg.sender == _getAdmin(), "Not admin");
+        _upgradeTo(newImplementation);
+    }
+
+    function upgradeToAndCall(address newImplementation, bytes calldata data) external {
+        require(msg.sender == _getAdmin(), "Not admin");
+        _upgradeTo(newImplementation);
+        (bool success, ) = newImplementation.delegatecall(data);
+        require(success, "Call failed");
+    }
+
+    function changeAdmin(address newAdmin) external {
+        require(msg.sender == _getAdmin(), "Not admin");
+        require(newAdmin != address(0), "Invalid admin");
+
+        address prevAdmin = _getAdmin();
+        _setAdmin(newAdmin);
+        emit AdminChanged(prevAdmin, newAdmin);
+    }
+
+    function admin() external view returns (address) {
+        return _getAdmin();
+    }
+
+    function implementation() external view returns (address) {
+        return _getImplementation();
+    }
 
     event Upgrade(address indexed implementation);
     event AdminChanged(address prevAdmin, address currAdmin);
