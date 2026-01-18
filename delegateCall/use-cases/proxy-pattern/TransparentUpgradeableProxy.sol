@@ -15,6 +15,16 @@ contract TransparentUpgradeableProxy {
         uint256(keccak256("eip1967.proxy.implementation")) - 1
     );
 
+    error NotAuthorized();
+    error InvalidImplementation();
+    error ImplementationNotContract();
+    error UpgradeCallFailed(bytes reason);
+
+    modifier onlyAdmin() {
+        require(msg.sender == _getAdmin(), "Not admin");
+        _;
+    }
+
     constructor(address _logic, address _admin, bytes memory _data) {
         _setImplementation(_logic);
         _setAdmin(_admin);
