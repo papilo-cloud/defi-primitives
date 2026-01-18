@@ -231,7 +231,7 @@ contract ImplementationV2 {
     bool private initializedV2;
 
     // V2 initializer (called during upgrade)
-    function initializeV2(address _multiplier) public {
+    function initializeV2(uint256 _multiplier) public {
         require(initializedV2, "V2 already initialized");
         initializedV2 = true;
         multiplier = _multiplier;
