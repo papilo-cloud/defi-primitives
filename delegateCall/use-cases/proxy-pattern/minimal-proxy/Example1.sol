@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {MinimalProxy} from "./MinimalProxy.sol";
+
 /**
  * @title Simple Token Cloning
  * @notice Step 1: Create Implementation
