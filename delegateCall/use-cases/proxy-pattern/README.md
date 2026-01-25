@@ -32,16 +32,16 @@ UUPS:        Upgrade logic in Implementation
 
 ### Advantages
 
-- ✅ Lower deployment cost (simpler proxy)
-- ✅ More flexible (upgrade logic can evolve)
-- ✅ No function selector clashing issues
-- ✅ Admin doesn't need special treatment
+- Lower deployment cost (simpler proxy)
+- More flexible (upgrade logic can evolve)
+- No function selector clashing issues
+- Admin doesn't need special treatment
 
 ### Disadvantages
 
-- ⚠️ Upgrade logic can be buggy
-- ⚠️ If implementation loses upgrade ability, stuck forever
-- ⚠️ More responsibility on implementation
+- Upgrade logic can be buggy
+- If implementation loses upgrade ability, stuck forever
+- More responsibility on implementation
 
 ### Implementation [UUPSProxy](UUPSProxy.sol)
 
@@ -71,17 +71,17 @@ Storage: 1 book + 1000 tiny bookmarks
 
 ### When to Use:
 
-✅ Multiple instances of same logic  
-✅ Low-frequency interactions per instance  
-✅ Gas efficiency is priority  
-✅ Factory pattern makes sense
+- Multiple instances of same logic  
+- Low-frequency interactions per instance  
+- Gas efficiency is priority  
+- Factory pattern makes sense
 
 ### ERC-1167 vs ERC-1967 (UUPS/Transparent)
 
 | Feature | ERC-1167 | ERC-1967 |
 |---------|----------|----------|
 | **Deployment Cost** | ~41,000 gas | ~200,000 gas |
-| **Upgradeability** | ❌ No | ✅ Yes |
+| **Upgradeability** | No | Yes |
 | **Runtime Overhead** | ~700 gas/call | ~2,000 gas/call |
 | **Use Case** | Many identical contracts | Single upgradeable contract |
 | **Complexity** | Very simple | Complex |
@@ -100,3 +100,18 @@ Storage: 1 book + 1000 tiny bookmarks
 
 #### **Example 4:** [Clone with Immutable Args (CREATE2 + Data)](minimal-proxy/Example4.sol)
 
+---
+
+## 4. Library Pattern
+
+### Using delegatecall for library functionality
+
+### Implementation [Library Pattern](library-pattern/)
+
+---
+
+## 5. Diamond Pattern (Multi-Facet Proxy)
+
+### Diamond pattern: Route to different implementations based on function selector
+
+### Implementation [Diamond Pattern](diamond-pattern/)
