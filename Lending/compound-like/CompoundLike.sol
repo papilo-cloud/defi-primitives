@@ -27,12 +27,22 @@ contract CompoundLike {
 
     mapping(address => mapping(address => uint256)) public cTokenBalance;
 
+    address[] supportedTokens;
+
     // Events
     event Supply(address indexed user, address token, uint256 amount);
     event Borrow(address indexed user, address token, uint256 amount);
     event Repay(address indexed user, address token, uint256 amount);
     event Withdraw(address indexed user, address token, uint256 amount);
 
+    // Each asset has a collateral factor (LTV)
+
+    constructor() {
+        collateralFactor[ETH] = 0.75e18;    // 75% LTV
+        collateralFactor[WBTC] = 0.70e18;   // 70% LTV
+        collateralFactor[USDC] = 0.80e18;   // 80% LTV
+        collateralFactor[SHIB] = 0.40e18;   // 40% LTV (risky asset)
+    }
 
     function supply(address token, uint256 amount) external {
         // Transfer tokens from user
@@ -131,4 +141,55 @@ contract CompoundLike {
         borrowIndex[token] += (borrowIndex[token] * simpleInterest) / 1e18;
         lastAccrualBlock[token] = currentBlock;
     }
+    
+
+    // Collateralization & Health Factor
+    function getAccountLiquidity(address account) public view returns (uint256 liquidity, uint256 shortfall) {
+        uint256 totalCollateral = 0;
+        uint256 totalBorrow = 0;
+
+        // Calculate total collateral value (adjusted by collateral factor)
+        for (uint i = 0; i < supportedTokens.length; i++) {
+            address token = supportedTokens[i];
+            uint256 supplied = supplied[account][token];
+
+            if (supplied > 0) {
+                uint256 price = oracle.getPrice(token);
+                uint256 collateral = (supplied * price) / 1e18;
+                uint256 weightedCollateral = (collateralValue * collateralFactor[token]) / 1e18;
+                totalCollateral += weightedCollateral;
+            }
+        }
+
+        // Calculate total borrow value
+        for (uint i = 0; i < supportedTokens.length; i++) {
+            address token = supportedTokens[i];
+            uint256 borrowedAmount = borrowed[account][token];
+
+            if (borrowedAmount > 0) {
+                uint256 price = oracle.getPrice(token);
+                uint256 borrowValue = (borrowedAmount * price) / 1e18;
+                totalBorrow += borrowValue;
+            }
+        }
+
+        // Calculate liquidity or shortfall
+        if (totalCollateral > totalBorrow) {
+            liquidity = totalCollateral - totalBorrow;
+        } else {
+            liquidity = 0;
+            shortfall = totalBorrow - totalCollateral
+        }
+    }
+
+    // Health Factor (Aave)
+    function getHealthFactor(address user) public view returns (uint256) {
+        (uint256 totalCollateral, uint256 totalDebt, uint256 availableBorrow, uint256 liquidationThreshold) = 
+            getUserAccountData(user);
+
+            if (totalDebt == 0) return type(uint256).max;
+
+            return (totalCollateral * liquidationThreshold) / (totalDebt * 1e4);
+    }
+
 }
