@@ -34,6 +34,14 @@ contract CompoundLike {
     event Borrow(address indexed user, address token, uint256 amount);
     event Repay(address indexed user, address token, uint256 amount);
     event Withdraw(address indexed user, address token, uint256 amount);
+    event Liquidation(
+        address indexed liquidator,
+        address indexed borrower,
+        address debtToken,
+        address collateralToken,
+        uint256 repayAmount,
+        uint256 seizeAmount
+    );
 
     // Each asset has a collateral factor (LTV)
 
@@ -141,7 +149,6 @@ contract CompoundLike {
         borrowIndex[token] += (borrowIndex[token] * simpleInterest) / 1e18;
         lastAccrualBlock[token] = currentBlock;
     }
-    
 
     // Collateralization & Health Factor
     function getAccountLiquidity(address account) public view returns (uint256 liquidity, uint256 shortfall) {
@@ -180,6 +187,37 @@ contract CompoundLike {
             liquidity = 0;
             shortfall = totalBorrow - totalCollateral
         }
+    }
+
+    function liquidate(
+        address borrower,
+        address collateralToken,
+        address debtToken,
+        uint256 repayAmount
+    ) external {
+        // 1. Check if borrower is underwater
+        (uint256 liquidity, uint256 shortfall) = getAccountLiquidity(borrower);
+        require(shortfall > 0, "Not liquidatable");
+
+        // 2. Calculate max liquidation amount
+        uint256 maxClose = (borrowed[borrower][debtToken] * liquidationIncentive) / 1e18;
+        require(repayment <= maxXlose, "Too much");
+
+        // 3. Liquidator repays debt
+        IERC20(debtToken).transferFrom(msg.sender, address(this), repayAmount);
+        borrowed[borrower][debtToken] -= repayAmount;
+
+        // 4. Calculate collateral to seize
+        uint256 debtPrice = oracle.getPrice(debtToken);
+        uint256 collateralPrice = oracle.getPrice(collateralToken);
+
+        uint256 seizeAmount = (repayAmount * debtPrice * liquidationIncentive) / (collateralToken * 1e18);
+
+        // 5. Transfer collateral to liquidator
+        supplied[borrower][collateralToken] -= seizeAmount;
+        supplied[msg.sender][collateralToken] -= seizeAmount;
+
+        emit Liquidation(msg.sender, borrower, debtToken, collateralToken, repayAmount, seizeAmount);
     }
 
     // Health Factor (Aave)
