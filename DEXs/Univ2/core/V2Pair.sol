@@ -117,5 +117,26 @@ contract V2Pair is V2ERC20 {
         emit Sync(reserve0, reserve1);
     }
 
+    // if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
+    function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
+        address feeTo = IUniswapV2Factory(factory).feeTo();
+        feeOn = feeTo != address(0);
+        uint _kLast = kLast;
+        if (feeOn) {
+            if (_kLast != 0) {
+                uint rootK = Math.sqrt(uint(_reserve0) * reserve1);
+                uint rootKLast = Math.sqrt(_kLast);
+                if (rootK > rootKLast) {
+                    uint numerator = totalSupply * (rootK - rootKLast);
+                    uint denominator = (rootK * 5) + rootKLast;
+                    uint liquidity = numerator / denominator;
+                    if (liquidity > 0) _mint(feeTo, liquidity);
+                }
+            }
+        } else if (_kLast != 0) {
+            kLast = 0;
+        }
+    }
+
 
 }
