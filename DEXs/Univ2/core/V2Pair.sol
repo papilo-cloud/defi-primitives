@@ -92,5 +92,30 @@ contract V2Pair is V2ERC20 {
         token1 = _token1;
     }
 
+    function _update(
+        uint balance0,
+        uint balance1,
+        uint112 _reserve0,
+        uint112 _reserve1
+    ) private {
+        require(balance0 <= type(uint112).max && balance1 <= type(uint112).max, 'UniswapV2: OVERFLOW');
+
+        uint32 blockTimeStamp = uint32(block.timestamp % 2**32);
+        uint32 timeElapsed = blockTimeStamp - blockTimeStampLast;
+
+        if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+            // Update pice oracle (cumulative prices)
+            // * never overflows, and + oveflow is desired
+            price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
+            price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
+        }
+
+        reserve0 = uint112(balance0);
+        reserve1 = uint112(balance1);
+        blockTimeStampLast = blockTimeStamp;
+
+        emit Sync(reserve0, reserve1);
+    }
+
 
 }
