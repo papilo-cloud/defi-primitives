@@ -100,6 +100,8 @@ Storage: 1 book + 1000 tiny bookmarks
 
 #### **Example 4:** [Clone with Immutable Args (CREATE2 + Data)](minimal-proxy/Example4.sol)
 
+**Advanced pattern:** Store constructor-like arguments in the clone's bytecode.
+
 ---
 
 ## 4. Library Pattern

@@ -45,4 +45,30 @@ contract ConfigurableVault {
             arg := shr(0x60, calldataload(add(sub(codeSize, 52), offset)))
         }
     }
+
+    function _getArgUint256(uint256 offset) private pure returns (uint256 arg) {
+        uint256 codeSize;
+        assembly {
+            codeSize := codesize()
+        }
+        assembly {
+            arg := calldataload(add(sub(codeSize, 52), offset))
+        }
+    }
+
+    function deposit(uint256 amount) external {
+        address owner = getOwner();
+        uint256 feeRate = getFeeRate();
+
+        // Use immutable args in logic
+    }
+}
+
+
+contract ConfigurableFactory {
+    address public immutable implementation;
+
+    constructor() {
+        implementation = address(new ConfigurableVault());
+    }
 }
