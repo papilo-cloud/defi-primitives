@@ -167,3 +167,210 @@ function onTokenOutflow(address token, uint256 amount) {
 ### [Example 1: Simple Lending Protocol](./SimpleLendingProtocol.sol)
 
 ### [Example 2: DEX with Circuit Breaker](./ProtectedDEX.sol)
+
+---
+
+## Integration Guide
+
+### Step 1: Deploy Circuit Breaker
+
+```solidity
+// Deploy with your admin address
+CircuitBreaker breaker = new CircuitBreaker(
+    adminAddress,
+    true  // true = revert on limit, false = delay settlement
+);
+```
+
+### Step 2: Register Assets
+
+```solidity
+// Register USDC with parameters
+breaker.registerAsset(
+    USDC_ADDRESS,
+    15,        // 15% max outflow
+    3600,      // 1 hour window
+    10_000e6   // 10K USDC minimum
+);
+
+// Register ETH
+breaker.registerAsset(
+    WETH_ADDRESS,
+    20,        // 20% max outflow
+    7200,      // 2 hour window
+    1 ether    // 1 ETH minimum
+);
+```
+
+### Step 3: Modify Your Protocol
+
+```solidity
+// Before (vulnerable):
+function withdraw(address token, uint256 amount) external {
+    balances[msg.sender] -= amount;
+    IERC20(token).transfer(msg.sender, amount);
+}
+
+// After (protected):
+function withdraw(address token, uint256 amount) external {
+    balances[msg.sender] -= amount;
+    cbOutflowSafeTransfer(token, amount, msg.sender, false);
+}
+```
+
+### Step 4: Add Protected Contracts
+
+```solidity
+breaker.addProtectedContract(address(yourProtocol));
+```
+
+### Step 5: Monitor and Maintain
+
+```solidity
+// Check status regularly
+(uint256 outflow, uint256 max, bool limited, uint256 reset) = 
+    breaker.getRateLimitStatus(USDC_ADDRESS);
+
+if (limited) {
+    // Alert team, investigate
+    notifySecurityTeam();
+}
+```
+
+---
+
+## Security Considerations
+
+### Admin Privileges
+
+**Risk:** Centralization through admin control
+
+**Mitigation:**
+```solidity
+// Use timelock for admin functions
+contract TimelockCircuitBreaker is CircuitBreaker {
+    uint256 constant TIMELOCK = 24 hours;
+    
+    mapping(bytes32 => uint256) public queuedActions;
+    
+    function queueParamUpdate(
+        address asset,
+        uint256 newThreshold
+    ) external onlyAdmin {
+        bytes32 actionId = keccak256(
+            abi.encode(asset, newThreshold, block.timestamp)
+        );
+        queuedActions[actionId] = block.timestamp + TIMELOCK;
+    }
+    
+    function executeParamUpdate(
+        address asset,
+        uint256 newThreshold
+    ) external onlyAdmin {
+        bytes32 actionId = keccak256(
+            abi.encode(asset, newThreshold, /* original timestamp */)
+        );
+        require(
+            block.timestamp >= queuedActions[actionId],
+            "Timelock not expired"
+        );
+        
+        // Execute update
+        assetConfigs[asset].rateLimitPercentage = newThreshold;
+    }
+}
+```
+
+### False Positives
+
+**Risk:** Legitimate high-volume activity triggers breaker
+
+**Mitigation:**
+- Careful threshold calibration
+- Historical data analysis
+- Whitelist for known large users
+- Grace periods for expected high-volume events
+
+### Oracle Dependence
+
+**Risk:** If using price oracles, manipulation could bypass limits
+
+**Solution:** Use notional token amounts, not USD values
+
+---
+
+## Limitations and Trade-offs
+
+### The Circuit Breaker Dilemma
+
+```
+More Restrictive          vs         More Permissive
+     ↓                                      ↓
+Better Protection                    Better UX
+Lower Limits                        Higher Limits
+More False Positives                More Attack Surface
+```
+
+**The Balance:**
+A 10% threshold circuit breaker will:
+- Stop 90% of a hack attempt
+- Occasionally block legitimate large withdrawals
+
+A 50% threshold will:
+- Stop 50% of a hack attempt
+- Rarely interfere with normal operations
+
+### What Circuit Breakers DON'T Prevent
+
+❌ **Slow drip attacks:** Attacker stays under threshold
+❌ **Logic bugs:** Won't fix vulnerable code
+❌ **Flash loan attacks** within single transaction
+❌ **Social engineering:** Can't stop admin key compromise
+
+✓ **What they DO prevent:**
+Large, rapid fund drainage during active exploits
+
+---
+
+## Comparison with Traditional Finance
+
+### NYSE Circuit Breakers
+
+Traditional stock market uses similar mechanisms:
+
+| Level | Trigger | Action |
+|-------|---------|--------|
+| Level 1 | 7% drop | Halt 15 minutes |
+| Level 2 | 13% drop | Halt 15 minutes |
+| Level 3 | 20% drop | Halt rest of day |
+
+**Key Difference:**
+- NYSE: Designed to calm panic, reduce volatility
+- DeFi: Designed to prevent theft, protect assets
+
+## Quick Reference Card
+
+```solidity
+// Minimal Integration Checklist
+
+// 1. Deploy Circuit Breaker
+CircuitBreaker cb = new CircuitBreaker(admin, true);
+
+// 2. Register Your Token
+cb.registerAsset(TOKEN, 15, 3600, MIN_AMOUNT);
+
+// 3. Inherit ProtectedContract
+contract MyProtocol is ProtectedContract {
+    constructor() ProtectedContract(address(cb)) {}
+}
+
+// 4. Replace Transfers
+// OLD: token.transfer(user, amount);
+// NEW: cbOutflowSafeTransfer(token, amount, user, false);
+
+// 5. Track Deposits
+// OLD: token.transferFrom(user, address(this), amount);
+// NEW: cbInflowSafeTransferFrom(token, user, address(this), amount);
+
+// Done! Your protocol is now protected.
+```
