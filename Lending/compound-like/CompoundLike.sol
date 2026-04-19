@@ -26,6 +26,7 @@ contract CompoundLike {
     mapping(address => uint256) public lastAccrualBlock;
 
     mapping(address => mapping(address => uint256)) public cTokenBalance;
+    mapping(string => uint256) public collateralFactor;
 
     address[] supportedTokens;
 
