@@ -1,5 +1,7 @@
 import numpy as np
 
+from black_scholes import black_scholes_call
+
 def simulate_covered_call_vault(
     initial_eth_price=2000,
     weeks=52,
@@ -20,7 +22,7 @@ def simulate_covered_call_vault(
         T = 7/365  # 1 week
         
         # Price the call we're selling
-        greeks = option_greeks(eth_price, strike, T, risk_free, vol, 'call')
+        greeks = black_scholes_call(eth_price, strike, T, risk_free, vol, 'call')
         premium = greeks['price']
         total_premium_collected += premium
         
